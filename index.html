@@ -126,6 +126,7 @@
 
     <script type="module">
         import * as THREE from 'three';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -211,7 +212,17 @@
         scene.add(hemiLight);
 
         // GLTFLoader
+        // ==============
         const loader = new GLTFLoader();
+        const dracoLoader = new DRACOLoader();
+
+        // 设置解码器路径，可以用 CDN 或本地路径
+        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+        // 如果你下载了 Draco 解码器文件放在项目里，可以改成 './draco/'
+
+        loader.setDRACOLoader(dracoLoader);
+        // ==============
+        // const loader = new GLTFLoader();
 
         // UI Elements
         const modelInfo = document.getElementById('model-info');
@@ -314,7 +325,7 @@
                 // Start with dyn2 (index 0)
                 currentDynamicIndex = 0;
                 loadModel(dynamicModels[currentDynamicIndex]);
-                dynamicInterval = setInterval(nextDynamicModel, 2000);
+                dynamicInterval = setInterval(nextDynamicModel, 3000);
             } else {
                 dynamicBtn.classList.remove('active');
                 dynamicBtn.textContent = 'Animation';
