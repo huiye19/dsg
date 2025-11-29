@@ -234,10 +234,9 @@
             return path.split('/').pop().replace('.glb', '');
         }
 
-        function loadModel(modelPath) {
+        function loadModel(modelPath, onLoadCallback) {
             loading.style.display = 'block';
 
-            // Remove current model
             if (currentModel) {
                 scene.remove(currentModel);
                 currentModel.traverse((child) => {
@@ -257,11 +256,9 @@
                 (gltf) => {
                     currentModel = gltf.scene;
 
-                    // Apply rotation adjustment to align models
                     const rotation = modelRotations[modelPath] || { rotationY: 0 };
                     currentModel.rotation.y = rotation.rotationY;
 
-                    // Center and scale the model
                     const box = new THREE.Box3().setFromObject(currentModel);
                     const center = box.getCenter(new THREE.Vector3());
                     const size = box.getSize(new THREE.Vector3());
@@ -270,12 +267,10 @@
                     const scale = 3 / maxDim;
                     currentModel.scale.setScalar(scale);
 
-                    // Recalculate after scaling
                     box.setFromObject(currentModel);
                     box.getCenter(center);
                     currentModel.position.sub(center);
 
-                    // Enable shadows
                     currentModel.traverse((child) => {
                         if (child.isMesh) {
                             child.castShadow = true;
@@ -287,6 +282,9 @@
 
                     modelInfo.textContent = `Model: ${getModelName(modelPath)}`;
                     loading.style.display = 'none';
+
+                    // ✅ 加载完成后再调用回调
+                    if (onLoadCallback) onLoadCallback();
                 },
                 (xhr) => {
                     const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
@@ -302,18 +300,29 @@
 
         // Switch button: toggle between dyn4 and dyn2
         function switchModel() {
-            // Stop dynamic mode if running
+            // 如果当前在动画模式，先停止动画
             if (isDynamicMode) {
-                toggleDynamicMode();
+                isDynamicMode = false;
+                dynamicBtn.classList.remove('active');
+                dynamicBtn.textContent = 'Animation';
             }
+
+            // 切换到下一个 Switch 模型
             currentSwitchIndex = (currentSwitchIndex + 1) % switchModels.length;
             loadModel(switchModels[currentSwitchIndex]);
         }
 
+
+
         // Dynamic mode: cycle through dyn2, dyn3, model1, dyn4
         function nextDynamicModel() {
             currentDynamicIndex = (currentDynamicIndex + 1) % dynamicModels.length;
-            loadModel(dynamicModels[currentDynamicIndex]);
+            loadModel(dynamicModels[currentDynamicIndex], () => {
+                // 模型加载完成后再延迟进入下一个
+                if (isDynamicMode) {
+                    setTimeout(nextDynamicModel, 3000);
+                }
+            });
         }
 
         function toggleDynamicMode() {
@@ -322,17 +331,16 @@
             if (isDynamicMode) {
                 dynamicBtn.classList.add('active');
                 dynamicBtn.textContent = 'Stop';
-                // Start with dyn2 (index 0)
                 currentDynamicIndex = 0;
-                loadModel(dynamicModels[currentDynamicIndex]);
-                dynamicInterval = setInterval(nextDynamicModel, 3000);
+                loadModel(dynamicModels[currentDynamicIndex], () => {
+                    setTimeout(nextDynamicModel, 3000);
+                });
             } else {
                 dynamicBtn.classList.remove('active');
                 dynamicBtn.textContent = 'Animation';
-                clearInterval(dynamicInterval);
-                dynamicInterval = null;
             }
         }
+
 
         // Event listeners
         switchBtn.addEventListener('click', switchModel);
